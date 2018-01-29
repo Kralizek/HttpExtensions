@@ -9,6 +9,9 @@ platform: Any CPU
 only_commits:
   files:
     - src/
+    
+artifacts:
+- path: outputs
 
 build_script:
 
