@@ -46,13 +46,21 @@ namespace Kralizek.Extensions.Http
                 {
                     await LogResponse(response);
 
-                    response.EnsureSuccessStatusCode();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _serializerSettings);
 
-                    var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _serializerSettings);
-
-                    return result;
+                        return result;
+                    }
+                    else
+                    {
+                        throw new HttpException(response.StatusCode)
+                        {
+                            ReasonPhrase = response.ReasonPhrase
+                        };
+                    }
                 }
             }
         }
@@ -69,13 +77,21 @@ namespace Kralizek.Extensions.Http
                 {
                     await LogResponse(response);
 
-                    response.EnsureSuccessStatusCode();
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _serializerSettings);
 
-                    var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _serializerSettings);
-
-                    return result;
+                        return result;
+                    }
+                    else
+                    {
+                        throw new HttpException(response.StatusCode)
+                        {
+                            ReasonPhrase = response.ReasonPhrase
+                        };
+                    }
                 }
             }
         }
@@ -95,7 +111,13 @@ namespace Kralizek.Extensions.Http
                 {
                     await LogResponse(response);
 
-                    response.EnsureSuccessStatusCode();
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw new HttpException(response.StatusCode)
+                        {
+                            ReasonPhrase = response.ReasonPhrase
+                        };
+                    }
                 }
             }
         }
@@ -112,7 +134,13 @@ namespace Kralizek.Extensions.Http
                 {
                     await LogResponse(response);
 
-                    response.EnsureSuccessStatusCode();
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw new HttpException(response.StatusCode)
+                        {
+                            ReasonPhrase = response.ReasonPhrase
+                        };
+                    }
                 }
             }
         }
@@ -126,7 +154,10 @@ namespace Kralizek.Extensions.Http
             [HttpMethod.Get] = new EventId(1001, HttpMethod.Get.Method),
             [HttpMethod.Post] = new EventId(1002, HttpMethod.Post.Method),
             [HttpMethod.Put] = new EventId(1003, HttpMethod.Put.Method),
-            [HttpMethod.Delete] = new EventId(1004, HttpMethod.Delete.Method)
+            [HttpMethod.Delete] = new EventId(1004, HttpMethod.Delete.Method),
+            [HttpMethod.Options] = new EventId(1005, HttpMethod.Options.Method),
+            [HttpMethod.Head] = new EventId(1006, HttpMethod.Head.Method),
+            [HttpMethod.Trace] = new EventId(1007, HttpMethod.Head.Method)
         };
 
         private async Task LogResponse(HttpResponseMessage response)
@@ -180,7 +211,7 @@ namespace Kralizek.Extensions.Http
 
         private async Task LogRequest(HttpRequestMessage request, bool includeContent = false)
         {
-            var eventId = HttpMethodEventIds[request.Method];
+            var eventId = GetEventId();
 
             var state = new
             {
@@ -192,6 +223,15 @@ namespace Kralizek.Extensions.Http
 
             _logger.LogDebug(eventId, state, s => $"{s.method}: {s.requestUri} {(includeContent ? s.content : s.contentType)}");
 
+            EventId GetEventId()
+            {
+                if (!HttpMethodEventIds.TryGetValue(request.Method, out var value))
+                {
+                    value = new EventId(1000, request.Method.Method);
+                }
+
+                return value;
+            }
         }
 
         #endregion

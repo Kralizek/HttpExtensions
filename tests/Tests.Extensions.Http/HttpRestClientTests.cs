@@ -81,6 +81,34 @@ namespace Tests.Extensions.Http
         }
 
         [Test]
+        [InlineAutoData("GET", HttpStatusCode.NotFound)]
+        [InlineAutoData("POST", HttpStatusCode.NotFound)]
+        [InlineAutoData("PUT", HttpStatusCode.NotFound)]
+        [InlineAutoData("DELETE", HttpStatusCode.NotFound)]
+        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, HttpStatusCode statusCode, Uri uri, Request request, Response response)
+        {
+            var httpMethod = new HttpMethod(method);
+
+            var options = new[]
+            {
+                new HttpMessageOptions
+                {
+                    RequestUri = uri,
+                    HttpMethod = httpMethod,
+                    HttpContent = new StringContent(JsonConvert.SerializeObject(request, serializerSettings)),
+                    HttpResponseMessage = new HttpResponseMessage(statusCode)
+                    {
+                        Content = new StringContent(JsonConvert.SerializeObject(response, serializerSettings))
+                    }
+                }
+            };
+
+            var sut = CreateSystemUnderTest(options);
+
+            Assert.ThrowsAsync<HttpException>(() => sut.SendAsync<Request, Response>(httpMethod, uri.ToString(), request));
+        }
+
+        [Test]
         [InlineAutoData("GET")]
         [InlineAutoData("POST")]
         [InlineAutoData("PUT")]
@@ -102,6 +130,31 @@ namespace Tests.Extensions.Http
             var sut = CreateSystemUnderTest(options);
 
             await sut.SendAsync(httpMethod, uri.ToString(), request);
+        }
+
+        [Test]
+        [InlineAutoData("GET", HttpStatusCode.NotFound)]
+        [InlineAutoData("POST", HttpStatusCode.NotFound)]
+        [InlineAutoData("PUT", HttpStatusCode.NotFound)]
+        [InlineAutoData("DELETE", HttpStatusCode.NotFound)]
+        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, HttpStatusCode statusCode, Uri uri, Request request)
+        {
+            var httpMethod = new HttpMethod(method);
+
+            var options = new[]
+            {
+                new HttpMessageOptions
+                {
+                    RequestUri = uri,
+                    HttpMethod = httpMethod,
+                    HttpContent = new StringContent(JsonConvert.SerializeObject(request, serializerSettings)),
+                    HttpResponseMessage = new HttpResponseMessage(statusCode)
+                }
+            };
+
+            var sut = CreateSystemUnderTest(options);
+
+            Assert.ThrowsAsync<HttpException>(() => sut.SendAsync<Request>(httpMethod, uri.ToString(), request));
         }
 
         [Test]
@@ -133,6 +186,33 @@ namespace Tests.Extensions.Http
         }
 
         [Test]
+        [InlineAutoData("GET", HttpStatusCode.NotFound)]
+        [InlineAutoData("POST", HttpStatusCode.NotFound)]
+        [InlineAutoData("PUT", HttpStatusCode.NotFound)]
+        [InlineAutoData("DELETE", HttpStatusCode.NotFound)]
+        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, HttpStatusCode statusCode, Uri uri, Response response)
+        {
+            var httpMethod = new HttpMethod(method);
+
+            var options = new[]
+            {
+                new HttpMessageOptions
+                {
+                    RequestUri = uri,
+                    HttpMethod = httpMethod,
+                    HttpResponseMessage = new HttpResponseMessage(statusCode)
+                    {
+                        Content = new StringContent(JsonConvert.SerializeObject(response, serializerSettings))
+                    }
+                }
+            };
+
+            var sut = CreateSystemUnderTest(options);
+
+            Assert.ThrowsAsync<HttpException>(() => sut.SendAsync<Response>(httpMethod, uri.ToString()));
+        }
+
+        [Test]
         [InlineAutoData("GET")]
         [InlineAutoData("POST")]
         [InlineAutoData("PUT")]
@@ -155,6 +235,29 @@ namespace Tests.Extensions.Http
             await sut.SendAsync(httpMethod, uri.ToString());
         }
 
+        [Test]
+        [InlineAutoData("GET", HttpStatusCode.NotFound)]
+        [InlineAutoData("POST", HttpStatusCode.NotFound)]
+        [InlineAutoData("PUT", HttpStatusCode.NotFound)]
+        [InlineAutoData("DELETE", HttpStatusCode.NotFound)]
+        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, HttpStatusCode statusCode, Uri uri)
+        {
+            var httpMethod = new HttpMethod(method);
+
+            var options = new[]
+            {
+                new HttpMessageOptions
+                {
+                    RequestUri = uri,
+                    HttpMethod = httpMethod,
+                    HttpResponseMessage = new HttpResponseMessage(statusCode)
+                }
+            };
+
+            var sut = CreateSystemUnderTest(options);
+
+            Assert.ThrowsAsync<HttpException>(() => sut.SendAsync(httpMethod, uri.ToString()));
+        }
 
         public class Request
         {

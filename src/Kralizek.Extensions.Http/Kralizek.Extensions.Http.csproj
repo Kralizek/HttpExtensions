@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>Kralizek.Extensions.Http</PackageId>
     <Description>Classes and extension methods to make easier to work with REST APIs via HttpClient</Description>
-    <PackageVersion>0.3.0</PackageVersion>
+    <PackageVersion>0.4.0</PackageVersion>
     <PackageLicenseUrl>https://raw.githubusercontent.com/Kralizek/HttpExtensions/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Kralizek/HttpExtensions</PackageProjectUrl>
     <PackageTags>dotnet-standard;http-client;querystring;rest-client</PackageTags>
