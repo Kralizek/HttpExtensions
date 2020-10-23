@@ -1,17 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp3.1;net471</TargetFrameworks>
-
-    <IsPackable>false</IsPackable>
+    <TargetFrameworks>netcoreapp3.1;net471;netcoreapp2.1</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoFixture" Version="4.14.0" />
-    <PackageReference Include="AutoFixture.NUnit3" Version="4.14.0" />
-    <PackageReference Include="AutoFixture.Idioms" Version="4.14.0" />
-    <PackageReference Include="AutoFixture.AutoMoq" Version="4.14.0" />
-    <PackageReference Include="Moq" Version="4.14.0" />
     <PackageReference Include="nunit" Version="3.12.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.12.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />

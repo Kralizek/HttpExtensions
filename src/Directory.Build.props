@@ -1,0 +1,44 @@
+  
+<Project>
+  <PropertyGroup>
+    <RootNamespace>Kralizek.Extensions.Http</RootNamespace>
+    <Authors>Renato Golia</Authors>
+  </PropertyGroup>
+
+  <ItemGroup Label="Static analysis packages">
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="3.3.0" PrivateAssets="all" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.205" PrivateAssets="all" />
+  </ItemGroup>
+
+  <PropertyGroup Label="Static analysis properties">
+    <SkipDefaultEditorConfigAsAdditionalFile>true</SkipDefaultEditorConfigAsAdditionalFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors Condition=" '$(Configuration)'=='Release'">true</TreatWarningsAsErrors>
+    <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)\..\CodeAnalysis.Library.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)\..\.editorconfig" />
+  </ItemGroup>
+
+  <PropertyGroup Label="SourceLink properties">
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup Label="SourceLink packages">
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+    <PackageReference Include="SourceLink.Copy.PdbFiles" Version="2.8.3" PrivateAssets="All" /> 
+  </ItemGroup>
+
+  <PropertyGroup Label="Package properties">
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/Kralizek/HttpExtensions</PackageProjectUrl>
+    <NoWarn>NU5105,NU5125</NoWarn>
+  </PropertyGroup>
+
+
+</Project>
