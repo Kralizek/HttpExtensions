@@ -1,95 +1,71 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AutoFixture;
+using AutoFixture.Idioms;
 using AutoFixture.NUnit3;
 using Kralizek.Extensions.Http;
 using NUnit.Framework;
-using Fragment = System.Collections.Generic.KeyValuePair<string, string>;
 
 namespace Tests.Extensions.Http
 {
     [TestFixture]
     public class HttpQueryStringBuilderTests
     {
-        private IFixture _fixture;
 
-        [SetUp]
-        public void Initialize()
+        [Test, CustomAutoData]
+        public void Constructor_is_guarded(GuardClauseAssertion assertion)
         {
-            _fixture = new Fixture();
+            assertion.Verify(typeof(HttpQueryStringBuilder).GetConstructors());
         }
 
-        [Test]
-        public void Has_parameterless_constructor()
+        [Test, CustomAutoData]
+        public void HasKey_returns_false_if_empty(HttpQueryStringBuilder sut, string key)
         {
-            var sut = new HttpQueryStringBuilder();
-        }
-
-        private HttpQueryStringBuilder CreateSystemUnderTest() => new HttpQueryStringBuilder();
-
-        [Test, AutoData]
-        public void HasKey_returns_false_if_empty(string key)
-        {
-            var sut = CreateSystemUnderTest();
-
             Assert.That(sut.HasKey(key), Is.False);
         }
 
-        [Test, AutoData]
-        public void HasKey_returns_true_if_key_is_added(string key, string value)
+        [Test, CustomAutoData]
+        public void HasKey_returns_true_if_key_is_added(HttpQueryStringBuilder sut, string key, string value)
         {
-            var sut = CreateSystemUnderTest();
-
             sut.Add(key, value);
 
             Assert.That(sut.HasKey(key), Is.True);
         }
 
-        [Test, AutoData]
-        public void Same_key_can_be_added_more_than_once(string key, string[] values)
+        [Test, CustomAutoData]
+        public void Same_key_can_be_added_more_than_once(HttpQueryStringBuilder sut, string key, string[] values)
         {
-            var sut = CreateSystemUnderTest();
-
             foreach (var value in values)
             {
                 sut.Add(key, value);
             }
         }
 
-        [Test, AutoData]
-        public void Add_throws_if_key_is_null(string value)
+        [Test, CustomAutoData]
+        public void Add_throws_if_key_is_null(HttpQueryStringBuilder sut, string value)
         {
-            var sut = CreateSystemUnderTest();
-
             Assert.Throws<ArgumentNullException>(() => sut.Add(null, value));
         }
 
-        [Test, AutoData]
-        public void Add_throws_if_value_is_null(string key)
+        [Test, CustomAutoData]
+        public void Add_throws_if_value_is_null(HttpQueryStringBuilder sut, string key)
         {
-            var sut = CreateSystemUnderTest();
-
             Assert.Throws<ArgumentNullException>(() => sut.Add(key, null));
         }
 
-        [Test]
-        public void QueryString_can_be_implicitly_converted_to_string()
+        [Test, CustomAutoData]
+        public void QueryString_can_be_implicitly_converted_to_string(HttpQueryStringBuilder sut)
         {
-            var sut = CreateSystemUnderTest();
-
             var query = sut.BuildQuery();
 
             Assume.That(query, Is.InstanceOf<HttpQueryStringBuilder.QueryString>());
 
             string querystring = query;
+
+            Assert.That(querystring, Is.Not.Null);
         }
 
-        [Test, AutoData]
-        public void BuildQuery_returns_query_with_added_items(string[] keys, string[] values)
+        [Test, CustomAutoData]
+        public void BuildQuery_returns_query_with_added_items(HttpQueryStringBuilder sut, string[] keys, string[] values)
         {
-            var sut = CreateSystemUnderTest();
-
             Assume.That(keys.Length, Is.EqualTo(values.Length));
 
             for (int i = 0; i < keys.Length; i++)

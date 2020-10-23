@@ -1,4 +1,4 @@
-﻿using System.Web;
+﻿using System.Net;
 using AutoFixture.NUnit3;
 using Kralizek.Extensions.Http;
 using NUnit.Framework;
@@ -33,7 +33,7 @@ namespace Tests.Extensions.Http
         {
             var key = $"{keyFirst}&{keySecond}";
 
-            var querystring = $"{HttpUtility.UrlEncode(key)}={value}";
+            var querystring = $"{WebUtility.UrlEncode(key)}={value}";
 
             var builder = HttpQueryStringBuilder.ParseQuery(querystring);
 

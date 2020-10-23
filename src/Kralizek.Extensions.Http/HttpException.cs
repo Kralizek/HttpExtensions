@@ -12,6 +12,6 @@ namespace Kralizek.Extensions.Http
 
         public HttpStatusCode StatusCode { get; }
 
-        public string ReasonPhrase { get; set; }
+        public string? ReasonPhrase { get; set; }
     }
 }

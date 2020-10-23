@@ -1,21 +1,43 @@
-version: '{build}'
+max_jobs: 1
 
-image: Visual Studio 2017
+environment:
+  CAKE_SETTINGS_SKIPPACKAGEVERSIONCHECK: "true"
 
-configuration: Release
+image: Visual Studio 2019
 
-platform: Any CPU
+cache:
+  - '%LocalAppData%\NuGet\v3-cache'
 
-only_commits:
-  files:
-    - src/
-    
-artifacts:
-- path: outputs/*
+nuget:
+  account_feed: false
+  project_feed: false
+  disable_publish_on_pr: true
+
+install:
+  - cmd: dotnet tool restore
 
 build_script:
-
-- ps: >-
-    .\build.ps1 -Target Pack
+  - cmd: dotnet cake --target=Full --SkipVerification=true
 
 test: off
+
+artifacts:
+  - path: outputs\*.nupkg
+    name: packages
+  - path: outputs\*.snupkg
+    name: symbols
+  - path: outputs\tests\report
+    name: report
+    type: zip
+
+deploy:
+  - provider: Environment
+    name: NuGet
+    on:
+      branch: master
+      appveyor_repo_tag: true
+  - provider: Environment
+    name: GitHub Packages - Kralizek
+    on:
+      branch: master
+      appveyor_repo_tag: true

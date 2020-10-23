@@ -4,24 +4,41 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace Kralizek.Extensions.Http
 {
-    public class HttpRestClient
+    public class HttpRestClientOptions
     {
-        private readonly HttpClient _client;
-        private readonly JsonSerializerSettings _serializerSettings;
-        private readonly ILogger _logger;
+        public string? HttpClientName { get; set; }
 
-        public HttpRestClient(HttpClient client, JsonSerializerSettings serializerSettings, ILogger logger)
+        public JsonSerializerSettings? SerializerSettings { get; set; }
+    }
+
+    public interface IHttpRestClient
+    {
+        Task<TResult> SendAsync<TContent, TResult>(HttpMethod method, string url, TContent content, IQueryString? query = null);
+        Task<TResult> SendAsync<TResult>(HttpMethod method, string url, IQueryString? query = null);
+        Task SendAsync<TContent>(HttpMethod method, string url, TContent content, IQueryString? query = null);
+        Task SendAsync(HttpMethod method, string url, IQueryString? query = null);
+    }
+
+    public class HttpRestClient : IHttpRestClient
+    {
+        private readonly IHttpClientFactory _httpFactory;
+        private readonly HttpRestClientOptions _options;
+
+        private readonly ILogger<HttpRestClient> _logger;
+
+        public HttpRestClient(IHttpClientFactory httpFactory, IOptions<HttpRestClientOptions> options, ILogger<HttpRestClient> logger)
         {
-            _client = client ?? throw new ArgumentNullException(nameof(client));
-            _serializerSettings = serializerSettings ?? throw new ArgumentNullException(nameof(serializerSettings));
+            _httpFactory = httpFactory ?? throw new ArgumentNullException(nameof(httpFactory));
+            _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        private static string ComposeUrl(string url, IQueryString query)
+        private static string ComposeUrl(string url, IQueryString? query)
         {
             if (query != null && query.HasItems)
                 return $"{url}?{query.Query}";
@@ -29,119 +46,121 @@ namespace Kralizek.Extensions.Http
             return url;
         }
 
+        private HttpClient CreateClient()
+        {
+            if (_options.HttpClientName != null)
+            {
+                return _httpFactory.CreateClient(_options.HttpClientName);
+            }
+
+            return _httpFactory.CreateClient();
+        }
+
         #region Send
 
-        public async Task<TResult> SendAsync<TContent, TResult>(HttpMethod method, string url, TContent content, IQueryString query = null)
+        public async Task<TResult> SendAsync<TContent, TResult>(HttpMethod method, string url, TContent content, IQueryString? query = null)
         {
-            var json = JsonConvert.SerializeObject(content, _serializerSettings);
+            var json = JsonConvert.SerializeObject(content, _options.SerializerSettings);
             var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
 
             var requestUrl = ComposeUrl(url, query);
 
-            using (var request = new HttpRequestMessage(method, requestUrl) { Content = httpContent })
+            using var request = new HttpRequestMessage(method, requestUrl) { Content = httpContent };
+
+            await LogRequest(request, includeContent: true);
+
+            using var response = await CreateClient().SendAsync(request).ConfigureAwait(false);
+
+            await LogResponse(response);
+
+            if (response is { IsSuccessStatusCode: true })
             {
-                await LogRequest(request, includeContent: true);
+                var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                using (var response = await _client.SendAsync(request).ConfigureAwait(false))
+                var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _options.SerializerSettings);
+
+                return result;
+            }
+            else
+            {
+                throw new HttpException(response.StatusCode)
                 {
-                    await LogResponse(response);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                        var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _serializerSettings);
-
-                        return result;
-                    }
-                    else
-                    {
-                        throw new HttpException(response.StatusCode)
-                        {
-                            ReasonPhrase = response.ReasonPhrase
-                        };
-                    }
-                }
+                    ReasonPhrase = response.ReasonPhrase
+                };
             }
         }
 
-        public async Task<TResult> SendAsync<TResult>(HttpMethod method, string url, IQueryString query = null)
+        public async Task<TResult> SendAsync<TResult>(HttpMethod method, string url, IQueryString? query = null)
         {
             var requestUrl = ComposeUrl(url, query);
 
-            using (var request = new HttpRequestMessage(method, requestUrl))
+            using var request = new HttpRequestMessage(method, requestUrl);
+            
+            await LogRequest(request);
+
+            using var response = await CreateClient().SendAsync(request).ConfigureAwait(false);
+            
+            await LogResponse(response);
+
+            if (response is { IsSuccessStatusCode: true })
             {
-                await LogRequest(request);
+                var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                using (var response = await _client.SendAsync(request).ConfigureAwait(false))
+                var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _options.SerializerSettings);
+
+                return result;
+            }
+            else
+            {
+                throw new HttpException(response.StatusCode)
                 {
-                    await LogResponse(response);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-                        var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _serializerSettings);
-
-                        return result;
-                    }
-                    else
-                    {
-                        throw new HttpException(response.StatusCode)
-                        {
-                            ReasonPhrase = response.ReasonPhrase
-                        };
-                    }
-                }
+                    ReasonPhrase = response.ReasonPhrase
+                };
             }
         }
 
-        public async Task SendAsync<TContent>(HttpMethod method, string url, TContent content, IQueryString query = null)
+        public async Task SendAsync<TContent>(HttpMethod method, string url, TContent content, IQueryString? query = null)
         {
-            var json = JsonConvert.SerializeObject(content, _serializerSettings);
+            var json = JsonConvert.SerializeObject(content, _options.SerializerSettings);
             var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
 
             var requestUrl = ComposeUrl(url, query);
 
-            using (var request = new HttpRequestMessage(method, requestUrl) { Content = httpContent })
+            using var request = new HttpRequestMessage(method, requestUrl) { Content = httpContent };
+            
+            await LogRequest(request, includeContent: true);
+
+            using var response = await CreateClient().SendAsync(request).ConfigureAwait(false);
+            
+            await LogResponse(response);
+
+            if (response is { IsSuccessStatusCode: false })
             {
-                await LogRequest(request, includeContent: true);
-
-                using (var response = await _client.SendAsync(request).ConfigureAwait(false))
+                throw new HttpException(response.StatusCode)
                 {
-                    await LogResponse(response);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        throw new HttpException(response.StatusCode)
-                        {
-                            ReasonPhrase = response.ReasonPhrase
-                        };
-                    }
-                }
+                    ReasonPhrase = response.ReasonPhrase
+                };
             }
         }
 
-        public async Task SendAsync(HttpMethod method, string url, IQueryString query = null)
+        public async Task SendAsync(HttpMethod method, string url, IQueryString? query = null)
         {
             var requestUrl = ComposeUrl(url, query);
 
-            using (var request = new HttpRequestMessage(method, requestUrl))
+            using var request = new HttpRequestMessage(method, requestUrl);
+            
+            await LogRequest(request, includeContent: true);
+
+            using var response = await CreateClient().SendAsync(request).ConfigureAwait(false);
+            
+            await LogResponse(response);
+
+            if (response is { IsSuccessStatusCode: false })
             {
-                await LogRequest(request, includeContent: true);
-
-                using (var response = await _client.SendAsync(request).ConfigureAwait(false))
+                throw new HttpException(response.StatusCode)
                 {
-                    await LogResponse(response);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        throw new HttpException(response.StatusCode)
-                        {
-                            ReasonPhrase = response.ReasonPhrase
-                        };
-                    }
-                }
+                    ReasonPhrase = response.ReasonPhrase
+                };
             }
         }
 
@@ -164,47 +183,37 @@ namespace Kralizek.Extensions.Http
         {
             var eventId = new EventId((int)response.StatusCode, response.ReasonPhrase);
 
-            if (!response.IsSuccessStatusCode)
+            if (response is { IsSuccessStatusCode: false })
             {
                 try
                 {
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    var state = new
-                    {
-                        method = response.RequestMessage.Method.Method.ToUpper(),
-                        requestUri = response.RequestMessage.RequestUri,
-                        status = response.StatusCode,
-                        reasonPhrase = response.ReasonPhrase,
-                        errorMessage = responseContent
-                    };
-
-                    _logger.LogError(eventId, state, s => $"{s.method}: {s.requestUri.PathAndQuery} {s.status:D} '{s.reasonPhrase}' '{s.errorMessage}'");
+                    _logger.LogError(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}' '{ERROR}'",
+                        response.RequestMessage.Method.Method.ToUpper(),
+                        response.RequestMessage.RequestUri.PathAndQuery,
+                        response.StatusCode.ToString("D"),
+                        response.ReasonPhrase,
+                        responseContent);
                 }
                 catch (Exception ex)
                 {
-                    var state = new
-                    {
-                        method = response.RequestMessage.Method.Method.ToUpper(),
-                        requestUri = response.RequestMessage.RequestUri,
-                        status = response.StatusCode,
-                        reasonPhrase = response.ReasonPhrase
-                    };
-
-                    _logger.LogError(eventId, state, ex, (s, e) => $"{s.method}: {s.requestUri.PathAndQuery} {s.status:D} '{s.reasonPhrase}' '{e.Message}'");
+                    _logger.LogError(eventId, ex, "{METHOD}: {PATHANDQUERY} {STATUS} {REASON} {ERRORMESSAGE}",
+                        response.RequestMessage.Method.Method.ToUpper(),
+                        response.RequestMessage.RequestUri.PathAndQuery,
+                        response.StatusCode.ToString("D"),
+                        response.ReasonPhrase,
+                        ex.Message
+                    );
                 }
             }
             else
             {
-                var state = new
-                {
-                    method = response.RequestMessage.Method.Method.ToUpper(),
-                    requestUri = response.RequestMessage.RequestUri,
-                    status = response.StatusCode,
-                    reasonPhrase = response.ReasonPhrase
-                };
-
-                _logger.LogDebug(eventId, state, s => $"{s.method}: {s.requestUri.PathAndQuery} {s.status:D} '{s.reasonPhrase}'");
+                _logger.LogDebug(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}'",
+                    response.RequestMessage.Method.Method.ToUpper(),
+                    response.RequestMessage.RequestUri.PathAndQuery,
+                    response.StatusCode.ToString("D"),
+                    response.ReasonPhrase);
             }
 
         }
@@ -213,15 +222,14 @@ namespace Kralizek.Extensions.Http
         {
             var eventId = GetEventId();
 
-            var state = new
-            {
-                method = request.Method.Method.ToUpper(),
-                requestUri = request.RequestUri,
-                content = includeContent ? await (request.Content?.ReadAsStringAsync() ?? Task.FromResult((string)null)) : null,
-                contentType = request.Content?.GetType().Name
-            };
+            var content = await GetContent();
 
-            _logger.LogDebug(eventId, state, s => $"{s.method}: {s.requestUri} {(includeContent ? s.content : s.contentType)}");
+            _logger.LogDebug(eventId, $"{{METHOD}}: {{REQUESTURI}} {{TYPECONTENT}} {(includeContent ? "{CONTENT}" : "") }",
+                request.Method.Method.ToUpper(),
+                request.RequestUri,
+                request.Content?.GetType().Name,
+                content
+            );
 
             EventId GetEventId()
             {
@@ -231,6 +239,16 @@ namespace Kralizek.Extensions.Http
                 }
 
                 return value;
+            }
+
+            async Task<string?> GetContent()
+            {
+                if (includeContent && request.Content != null)
+                {
+                    return await request.Content.ReadAsStringAsync();
+                }
+
+                return null;
             }
         }
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Net;
 using Fragment = System.Collections.Generic.KeyValuePair<string, string>;
 
 namespace Kralizek.Extensions.Http
@@ -31,8 +31,8 @@ namespace Kralizek.Extensions.Http
             var items = from fragment in query.Split('&')
                         where fragment.Length > 0
                         let pieces = fragment.Split('=')
-                        let key = HttpUtility.UrlDecode(pieces[0])
-                        let value = HttpUtility.UrlDecode(pieces[1])
+                        let key = WebUtility.UrlDecode(pieces[0])
+                        let value = WebUtility.UrlDecode(pieces[1])
                         select new Fragment(key, value);
 
             return new HttpQueryStringBuilder(items);
@@ -66,7 +66,7 @@ namespace Kralizek.Extensions.Http
 
         public bool HasKey(string key) => _inner.Exists(f => string.Equals(key, f.Key));
 
-        public QueryString BuildQuery(bool sortKeys = true, string collateKeysBy = null)
+        public QueryString BuildQuery(bool sortKeys = true, string? collateKeysBy = null)
         {
             IEnumerable<Fragment> items = _inner;
 
@@ -94,7 +94,7 @@ namespace Kralizek.Extensions.Http
             static string GetQuery(IEnumerable<Fragment> items)
             {
                 var queryItems = from item in items
-                                 let queryItem = $"{HttpUtility.UrlEncode(item.Key)}={HttpUtility.UrlEncode(item.Value)}"
+                                 let queryItem = $"{WebUtility.UrlEncode(item.Key)}={WebUtility.UrlEncode(item.Value)}"
                                  select queryItem;
 
                 return string.Join("&", queryItems);

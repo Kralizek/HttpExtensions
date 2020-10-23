@@ -2,78 +2,36 @@
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using AutoFixture;
+using AutoFixture.Idioms;
 using AutoFixture.NUnit3;
 using Kralizek.Extensions.Http;
-using Microsoft.Extensions.Logging;
 using Moq;
-using Newtonsoft.Json;
 using NUnit.Framework;
-using WorldDomination.Net.Http;
+using RichardSzalay.MockHttp;
 
 namespace Tests.Extensions.Http
 {
     [TestFixture]
     public class HttpRestClientTests
     {
-        private IFixture fixture;
-        private JsonSerializerSettings serializerSettings;
-
-        [SetUp]
-        public void Initialize()
+        [Test, CustomAutoData]
+        public void Constructor_is_guarded(GuardClauseAssertion assertion)
         {
-            fixture = new Fixture();
-            serializerSettings = new JsonSerializerSettings();
+            assertion.Verify(typeof(HttpRestClient).GetConstructors());
         }
 
         [Test]
-        public void HttpClient_cant_be_null()
-        {
-            Assert.Throws<ArgumentNullException>(() => new HttpRestClient(null, new JsonSerializerSettings(), Mock.Of<ILogger>()));
-        }
-
-        [Test]
-        public void JsonSerializerSettings_cant_be_null()
-        {
-            Assert.Throws<ArgumentNullException>(() => new HttpRestClient(Mock.Of<HttpClient>(), null, Mock.Of<ILogger>()));
-        }
-
-        [Test]
-        public void Logger_cant_be_null()
-        {
-            Assert.Throws<ArgumentNullException>(() => new HttpRestClient(Mock.Of<HttpClient>(), new JsonSerializerSettings(), null));
-        }
-
-        private HttpRestClient CreateSystemUnderTest(params HttpMessageOptions[] options)
-        {
-            var messageHandler = new FakeHttpMessageHandler(options);
-            var httpClient = new HttpClient(messageHandler);
-            return new HttpRestClient(httpClient, serializerSettings, Mock.Of<ILogger>());
-        }
-
-        [Test]
-        [InlineAutoData("GET")]
-        [InlineAutoData("POST")]
-        [InlineAutoData("PUT")]
-        [InlineAutoData("DELETE")]
-        public async Task SendAsync_can_send_request_with_body_and_receive_response_with_body(string method, Uri uri, Request request, Response response)
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public async Task SendAsync_can_send_request_with_body_and_receive_response_with_body(string method, [Frozen] MockHttpMessageHandler handler, HttpRestClient sut, Uri uri, Request request, Response response)
         {
             var httpMethod = new HttpMethod(method);
 
-            var options = new[]
-            {
-                new HttpMessageOptions
-                {
-                    RequestUri = uri,
-                    HttpMethod = httpMethod,
-                    HttpContent = new StringContent(JsonConvert.SerializeObject(request, serializerSettings)),
-                    HttpResponseMessage = new HttpResponseMessage
-                    {
-                        Content = new StringContent(JsonConvert.SerializeObject(response, serializerSettings))
-                    }
-                }
-            };
-            var sut = CreateSystemUnderTest(options);
+            handler.When(httpMethod, uri.ToString())
+                    .WithJsonContent(request)
+                    .Respond(HttpStatusCode.OK, JsonContent.FromObject(response));
 
             var actualResponse = await sut.SendAsync<Request, Response>(httpMethod, uri.ToString(), request);
 
@@ -81,104 +39,64 @@ namespace Tests.Extensions.Http
         }
 
         [Test]
-        [InlineAutoData("GET", HttpStatusCode.NotFound)]
-        [InlineAutoData("POST", HttpStatusCode.NotFound)]
-        [InlineAutoData("PUT", HttpStatusCode.NotFound)]
-        [InlineAutoData("DELETE", HttpStatusCode.NotFound)]
-        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, HttpStatusCode statusCode, Uri uri, Request request, Response response)
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, [Frozen] MockHttpMessageHandler handler, HttpRestClient sut, Uri uri, Request request, Response response)
         {
             var httpMethod = new HttpMethod(method);
 
-            var options = new[]
-            {
-                new HttpMessageOptions
-                {
-                    RequestUri = uri,
-                    HttpMethod = httpMethod,
-                    HttpContent = new StringContent(JsonConvert.SerializeObject(request, serializerSettings)),
-                    HttpResponseMessage = new HttpResponseMessage(statusCode)
-                    {
-                        Content = new StringContent(JsonConvert.SerializeObject(response, serializerSettings))
-                    }
-                }
-            };
+            handler.When(httpMethod, uri.ToString())
+                    .WithJsonContent(request)
+                    .Respond(HttpStatusCode.NotFound, JsonContent.FromObject(response));
 
-            var sut = CreateSystemUnderTest(options);
-
-            Assert.ThrowsAsync<HttpException>(() => sut.SendAsync<Request, Response>(httpMethod, uri.ToString(), request));
+            Assert.That(() => sut.SendAsync<Request, Response>(httpMethod, uri.ToString(), request), Throws.TypeOf<HttpException>());
         }
 
         [Test]
-        [InlineAutoData("GET")]
-        [InlineAutoData("POST")]
-        [InlineAutoData("PUT")]
-        [InlineAutoData("DELETE")]
-        public async Task SendAsync_can_send_request_with_body_and_receive_response(string method, Uri uri, Request request)
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public void SendAsync_can_send_request_with_body_and_receive_response(string method, [Frozen] MockHttpMessageHandler handler, HttpRestClient sut, Uri uri, Request request)
         {
             var httpMethod = new HttpMethod(method);
 
-            var options = new[]
-            {
-                new HttpMessageOptions
-                {
-                    RequestUri = uri,
-                    HttpMethod = httpMethod,
-                    HttpContent = new StringContent(JsonConvert.SerializeObject(request, serializerSettings)),
-                    HttpResponseMessage = new HttpResponseMessage(HttpStatusCode.OK)
-                }
-            };
-            var sut = CreateSystemUnderTest(options);
+            handler.When(httpMethod, uri.ToString())
+                    .WithJsonContent(request)
+                    .Respond(HttpStatusCode.OK);
 
-            await sut.SendAsync(httpMethod, uri.ToString(), request);
+            Assert.That(() => sut.SendAsync(httpMethod, uri.ToString(), request), Throws.Nothing);
         }
 
         [Test]
-        [InlineAutoData("GET", HttpStatusCode.NotFound)]
-        [InlineAutoData("POST", HttpStatusCode.NotFound)]
-        [InlineAutoData("PUT", HttpStatusCode.NotFound)]
-        [InlineAutoData("DELETE", HttpStatusCode.NotFound)]
-        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, HttpStatusCode statusCode, Uri uri, Request request)
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, [Frozen] MockHttpMessageHandler handler, HttpRestClient sut, Uri uri, Request request)
         {
             var httpMethod = new HttpMethod(method);
 
-            var options = new[]
-            {
-                new HttpMessageOptions
-                {
-                    RequestUri = uri,
-                    HttpMethod = httpMethod,
-                    HttpContent = new StringContent(JsonConvert.SerializeObject(request, serializerSettings)),
-                    HttpResponseMessage = new HttpResponseMessage(statusCode)
-                }
-            };
+            handler.When(httpMethod, uri.ToString())
+                    .WithJsonContent(request)
+                    .Respond(HttpStatusCode.NotFound);
 
-            var sut = CreateSystemUnderTest(options);
-
-            Assert.ThrowsAsync<HttpException>(() => sut.SendAsync<Request>(httpMethod, uri.ToString(), request));
+            Assert.That(() => sut.SendAsync(httpMethod, uri.ToString(), request), Throws.TypeOf<HttpException>());
         }
 
         [Test]
-        [InlineAutoData("GET")]
-        [InlineAutoData("POST")]
-        [InlineAutoData("PUT")]
-        [InlineAutoData("DELETE")]
-        public async Task SendAsync_can_send_request_and_receive_response_with_body(string method, Uri uri, Response response)
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public async Task SendAsync_can_send_request_and_receive_response_with_body(string method, [Frozen] MockHttpMessageHandler handler, HttpRestClient sut, Uri uri, Response response)
         {
             var httpMethod = new HttpMethod(method);
 
-            var options = new[]
-            {
-                new HttpMessageOptions
-                {
-                    RequestUri = uri,
-                    HttpMethod = httpMethod,
-                    HttpResponseMessage = new HttpResponseMessage
-                    {
-                        Content = new StringContent(JsonConvert.SerializeObject(response, serializerSettings))
-                    }
-                }
-            };
-            var sut = CreateSystemUnderTest(options);
+            handler.When(httpMethod, uri.ToString())
+                    .Respond(HttpStatusCode.OK, JsonContent.FromObject(response));
 
             var actualResponse = await sut.SendAsync<Response>(httpMethod, uri.ToString());
 
@@ -186,77 +104,67 @@ namespace Tests.Extensions.Http
         }
 
         [Test]
-        [InlineAutoData("GET", HttpStatusCode.NotFound)]
-        [InlineAutoData("POST", HttpStatusCode.NotFound)]
-        [InlineAutoData("PUT", HttpStatusCode.NotFound)]
-        [InlineAutoData("DELETE", HttpStatusCode.NotFound)]
-        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, HttpStatusCode statusCode, Uri uri, Response response)
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, [Frozen] MockHttpMessageHandler handler, HttpRestClient sut, Uri uri, Response response)
         {
             var httpMethod = new HttpMethod(method);
 
-            var options = new[]
-            {
-                new HttpMessageOptions
-                {
-                    RequestUri = uri,
-                    HttpMethod = httpMethod,
-                    HttpResponseMessage = new HttpResponseMessage(statusCode)
-                    {
-                        Content = new StringContent(JsonConvert.SerializeObject(response, serializerSettings))
-                    }
-                }
-            };
+            handler.When(httpMethod, uri.ToString())
+                    .Respond(HttpStatusCode.NotFound, JsonContent.FromObject(response));
 
-            var sut = CreateSystemUnderTest(options);
-
-            Assert.ThrowsAsync<HttpException>(() => sut.SendAsync<Response>(httpMethod, uri.ToString()));
+            Assert.That(() => sut.SendAsync<Response>(httpMethod, uri.ToString()), Throws.TypeOf<HttpException>());
         }
 
         [Test]
-        [InlineAutoData("GET")]
-        [InlineAutoData("POST")]
-        [InlineAutoData("PUT")]
-        [InlineAutoData("DELETE")]
-        public async Task SendAsync_can_send_request_and_receive_response(string method, Uri uri)
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public void SendAsync_can_send_request_and_receive_response(string method, [Frozen] MockHttpMessageHandler handler, HttpRestClient sut, Uri uri)
         {
             var httpMethod = new HttpMethod(method);
 
-            var options = new[]
-            {
-                new HttpMessageOptions
-                {
-                    RequestUri = uri,
-                    HttpMethod = httpMethod,
-                    HttpResponseMessage = new HttpResponseMessage(HttpStatusCode.OK)
-                }
-            };
-            var sut = CreateSystemUnderTest(options);
+            handler.When(httpMethod, uri.ToString())
+                    .Respond(HttpStatusCode.OK);
+
+            Assert.That(() => sut.SendAsync(httpMethod, uri.ToString()), Throws.Nothing);
+        }
+
+        [Test]
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, [Frozen] MockHttpMessageHandler handler, HttpRestClient sut, Uri uri)
+        {
+            var httpMethod = new HttpMethod(method);
+
+            handler.When(httpMethod, uri.ToString())
+                    .Respond(HttpStatusCode.NotFound);
+
+            Assert.That(() => sut.SendAsync<Response>(httpMethod, uri.ToString()), Throws.TypeOf<HttpException>());
+        }
+
+        [Test]
+        [InlineCustomAutoData("GET")]
+        [InlineCustomAutoData("POST")]
+        [InlineCustomAutoData("PUT")]
+        [InlineCustomAutoData("DELETE")]
+        public async Task HttpClientName_is_used_when_specified_in_options(string method, [Frozen] MockHttpMessageHandler handler, [Frozen] IHttpClientFactory httpClientFactory, [Frozen] HttpRestClientOptions options, HttpRestClient sut, Uri uri, string httpClientName)
+        {
+            var httpMethod = new HttpMethod(method);
+
+            options.HttpClientName = httpClientName;
+
+            handler.When(httpMethod, uri.ToString())
+                    .Respond(HttpStatusCode.OK);
 
             await sut.SendAsync(httpMethod, uri.ToString());
-        }
 
-        [Test]
-        [InlineAutoData("GET", HttpStatusCode.NotFound)]
-        [InlineAutoData("POST", HttpStatusCode.NotFound)]
-        [InlineAutoData("PUT", HttpStatusCode.NotFound)]
-        [InlineAutoData("DELETE", HttpStatusCode.NotFound)]
-        public void SendAsync_throws_HttpException_if_nonSuccessful_response(string method, HttpStatusCode statusCode, Uri uri)
-        {
-            var httpMethod = new HttpMethod(method);
-
-            var options = new[]
-            {
-                new HttpMessageOptions
-                {
-                    RequestUri = uri,
-                    HttpMethod = httpMethod,
-                    HttpResponseMessage = new HttpResponseMessage(statusCode)
-                }
-            };
-
-            var sut = CreateSystemUnderTest(options);
-
-            Assert.ThrowsAsync<HttpException>(() => sut.SendAsync(httpMethod, uri.ToString()));
+            Mock.Get(httpClientFactory).Verify(p => p.CreateClient(httpClientName), Times.AtLeastOnce());
         }
 
         public class Request
