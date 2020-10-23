@@ -1,0 +1,9 @@
+next-version: 0.1.0
+mode: ContinuousDeployment
+continuous-delivery-fallback-tag: preview
+
+branches:
+  master:
+    regex: ^master$|^main$
+  develop:
+    tag: vnext
