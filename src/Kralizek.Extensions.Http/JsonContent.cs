@@ -11,7 +11,7 @@ namespace Kralizek.Extensions.Http
 
         public JsonContent(string content, string mediaType = "application/json") : base (content, Encoding.UTF8, mediaType) { }
 
-        public static HttpContent FromObject<T>(T @object, JsonSerializerSettings settings)
+        public static HttpContent FromObject<T>(T @object, JsonSerializerSettings? settings)
         {
             string serialized = JsonConvert.SerializeObject(@object, settings);
             return new JsonContent(serialized);
@@ -26,7 +26,7 @@ namespace Kralizek.Extensions.Http
 
     public static class JsonContentExtensions 
     {
-        public static async Task<T> ReadAs<T>(this JsonContent content, JsonSerializerSettings settings)
+        public static async Task<T> ReadAs<T>(this JsonContent content, JsonSerializerSettings? settings)
         {
             var value = await content.ReadAsStringAsync();
             return JsonConvert.DeserializeObject<T>(value, settings);
