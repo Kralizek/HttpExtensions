@@ -4,6 +4,8 @@
 
 var target = Argument("Target", "Full");
 
+var skipVerification = Argument<bool>("SkipVerification", false);
+
 Setup<BuildState>(_ => 
 {
     var state = new BuildState
@@ -15,6 +17,8 @@ Setup<BuildState>(_ =>
     };
 
     CleanDirectory(state.Paths.OutputFolder);
+
+    Information($"SkipVerification: {skipVerification}");
 
     return state;
 });
@@ -53,6 +57,7 @@ Task("Restore")
 });
 
 Task("Verify")
+    .WithCriteria(!skipVerification)
     .IsDependentOn("Restore")
     .Does<BuildState>(state => 
 {
@@ -219,8 +224,17 @@ Task("PackLibraries")
         NoRestore = true,
         OutputDirectory = state.Paths.OutputFolder,
         IncludeSymbols = true,
-        ArgumentCustomization = args => args.Append($"-p:SymbolPackageFormat=snupkg -p:Version={state.Version.PackageVersion}")
+        MSBuildSettings = new DotNetCoreMSBuildSettings()
+                            .SetInformationalVersion(state.Version.AssemblyVersion)
+                            .SetVersion(state.Version.PackageVersion)
+                            .WithProperty("ContinuousIntegrationBuild", "true"),
+        //ArgumentCustomization = args => args.Append($"-p:SymbolPackageFormat=snupkg -p:Version={state.Version.PackageVersion}")
     };
+
+    if (skipVerification)
+    {
+        settings.MSBuildSettings.WithProperty("TreatWarningsAsErrors", "False");
+    }
 
     DotNetCorePack(state.Paths.SolutionFile.ToString(), settings);
 });
