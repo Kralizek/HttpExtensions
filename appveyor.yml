@@ -17,7 +17,7 @@ install:
   - cmd: dotnet tool restore
 
 build_script:
-  - cmd: dotnet cake --target=Full --SkipVerification=true
+  - cmd: dotnet cake --target=Full
 
 test: off
 

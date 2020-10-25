@@ -56,7 +56,7 @@ namespace Tests.Extensions.Http
         {
             var query = sut.BuildQuery();
 
-            Assume.That(query, Is.InstanceOf<HttpQueryStringBuilder.QueryString>());
+            Assume.That(query, Is.InstanceOf<QueryString>());
 
             string querystring = query;
 
