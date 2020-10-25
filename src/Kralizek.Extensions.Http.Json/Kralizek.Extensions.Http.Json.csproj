@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net471</TargetFrameworks>
+    <PackageId>Kralizek.Extensions.Http.Json</PackageId>
+    <AssemblyName>Kralizek.Extensions.Http.Json</AssemblyName>
+    <Description>Classes and extension methods to make easier to work with JSON APIs via HttpClient</Description>
+    <PackageTags>dotnet-standard;http-client;querystring;rest-client</PackageTags>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="3.1.9" />
+    <ProjectReference Include="..\Kralizek.Extensions.Http\Kralizek.Extensions.Http.csproj" />
+  </ItemGroup>
+
+</Project>
