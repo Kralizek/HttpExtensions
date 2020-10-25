@@ -5,14 +5,9 @@
     <PackageId>Kralizek.Extensions.Http</PackageId>
     <AssemblyName>Kralizek.Extensions.Http</AssemblyName>
     <Description>Classes and extension methods to make easier to work with REST APIs via HttpClient</Description>
-    <PackageTags>dotnet-standard;http-client;querystring;rest-client</PackageTags>
+    <PackageTags>dotnet-standard;http-client;querystring;</PackageTags>
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="3.1.9" />
-  </ItemGroup>
 
 </Project>
