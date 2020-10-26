@@ -2,6 +2,7 @@ using AutoFixture;
 using AutoFixture.AutoMoq;
 using AutoFixture.NUnit3;
 using Kralizek.Extensions.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
 namespace Tests
@@ -33,6 +34,8 @@ namespace Tests
             fixture.Inject(new JsonSerializerSettings());
 
             fixture.Inject(new HttpRestClientOptions());
+
+            fixture.Inject(new ServiceCollection());
 
             return fixture;
         }

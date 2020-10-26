@@ -10,7 +10,7 @@ namespace Kralizek.Extensions.Http
     public interface IHttpRestClient
     {
         /// <summary>
-        /// Sends an HTTP request with payload and receives a response with payload.
+        /// Sends an HTTP request with payload of type <typeparamref name="TContent"/> and receives a response with payload of type <typeparamref name="TResult"/>.
         /// </summary>
         /// <param name="method">The HTTP method of the request.</param>
         /// <param name="path">The path to be requested.</param>
@@ -22,7 +22,7 @@ namespace Kralizek.Extensions.Http
         Task<TResult> SendAsync<TContent, TResult>(HttpMethod method, string path, TContent content, IQueryString? query = null);
 
         /// <summary>
-        /// Sends an HTTP request and receives a response with payload.
+        /// Sends an HTTP request and receives a response with payload of type <typeparamref name="TResult"/>.
         /// </summary>
         /// <param name="method">The HTTP method of the request.</param>
         /// <param name="path">The path to be requested.</param>
@@ -33,7 +33,7 @@ namespace Kralizek.Extensions.Http
         Task<TResult> SendAsync<TResult>(HttpMethod method, string path, IQueryString? query = null);
 
         /// <summary>
-        /// Sends an HTTP request with payload.
+        /// Sends an HTTP request with payload of type <typeparamref name="TContent"/>.
         /// </summary>
         /// <param name="method">The HTTP method of the request.</param>
         /// <param name="path">The path to be requested.</param>
