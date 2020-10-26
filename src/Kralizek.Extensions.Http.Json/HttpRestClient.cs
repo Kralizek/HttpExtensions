@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 namespace Kralizek.Extensions.Http
 {
     /// <summary>
-    /// An implementation of <see cref="IHttpRestClient" /> that uses <see cref="IHttpClientFactory" /> to provision instances of <see cref="HttpClient"/>.
+    /// An implementation of <see cref="IHttpRestClient" /> that uses <see cref="IHttpClientFactory" /> to provision instances of <see cref="HttpClient"/> and assumes JSON payloads.
     /// </summary>
     public class HttpRestClient : IHttpRestClient
     {
@@ -56,7 +56,7 @@ namespace Kralizek.Extensions.Http
 #pragma warning disable CA2000 // Dispose objects before losing scope. Justification: False positive, see https://github.com/dotnet/roslyn-analyzers/issues/3042
 
         /// <summary>
-        /// Sends an HTTP request with payload and receives a response with payload.
+        /// Sends an HTTP request with payload of type <typeparamref name="TContent"/> and receives a response with payload of type <typeparamref name="TResult"/>.
         /// The request payload will be serialized as JSON.
         /// The response payload is assumed to be JSON.
         /// </summary>
@@ -90,7 +90,7 @@ namespace Kralizek.Extensions.Http
         }
 
         /// <summary>
-        /// Sends an HTTP request and receives a response with payload.
+        /// Sends an HTTP request and receives a response with payload of type <typeparamref name="TResult"/>.
         /// The response payload is assumed to be JSON.
         /// </summary>
         /// <inheritdoc/>
@@ -121,7 +121,7 @@ namespace Kralizek.Extensions.Http
         }
 
         /// <summary>
-        /// Sends an HTTP request with payload.
+        /// Sends an HTTP request with payload of type <typeparamref name="TContent"/>.
         /// The request payload will be serialized as JSON.
         /// </summary>
         /// <inheritdoc/>
