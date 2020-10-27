@@ -27,6 +27,6 @@ namespace Kralizek.Extensions.Http
         /// <summary>
         /// An instance of <see cref="JsonSerializerSettings" /> used when serializing and deserializing the content of an HTTP request/message.
         /// </summary>
-        public JsonSerializerSettings? SerializerSettings { get; set; }
+        public JsonSerializerSettings SerializerSettings { get; set; } = JsonConvert.DefaultSettings?.Invoke() ?? new JsonSerializerSettings();
     }
 }
