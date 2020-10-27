@@ -77,7 +77,7 @@ Here are some advantages of using the `HttpRestClient`:
 Here is a sample of its usage.
 
 ```csharp
-var client = services.GetRequiredServices<HttpRestClient>();
+var client = services.GetRequiredServices<IHttpRestClient>();
 
 var person = await client.SendAsync<Person>(HttpMethod.Get, "/people/1", query);
 ```
@@ -92,7 +92,35 @@ In the snippet above, the call to the `SendAsync` method takes care of:
 - log the HTTP response,
 - validate the result of the request via the status code of the HTTP response,
 - deserialize the payload into an instance of the `Person` class,
-- dispose all the resources that need disposing (`HttpRequestMessage` and `HttpResponseMessage`),
+- dispose all the resources that need disposing (`HttpRequestMessage` and `HttpResponseMessage`)
+
+#### Setup
+
+In the package there are different utilities that allow a simple yet powerful setup of the `HttpRestClient`.
+
+```csharp
+services.AddHttpRestClient("RequestBin", builder => builder
+    .ConfigureHttpClient(http =>
+    {
+        http.BaseAddress = new Uri("https://your-pipe.x.pipedream.net");
+        http.DefaultRequestHeaders.Add("X-Test", "This is a test");
+    })
+    .ConfigureHttpRestClient(options =>
+    {
+        options.ContentMediaType = JsonContent.ApplicationJsonMediaType;
+    })
+    .ConfigureSerialization(json => 
+    {
+        json.ContractResolver = new DefaultContractResolver 
+        {
+            NamingStrategy = new CamelCaseNamingStrategy()
+        };
+
+        json.Formatting = Formatting.Indented;
+    }));
+```
+
+Since `AddHttpRestClient` accepts a delegate of type `Action<IHttpClientBuilder>`, you can leverage extensions to the `HttpClientFactory` API like [Polly](https://docs.microsoft.com/en-gb/aspnet/core/fundamentals/http-requests?view=aspnetcore-3.1#use-polly-based-handlers).
 
 ## Versioning
 
