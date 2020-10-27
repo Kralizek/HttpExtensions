@@ -3,19 +3,36 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Kralizek.Extensions.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace ConsoleToRequestBin
 {
     class Program
     {
-        static async Task Main(string[] args)
+        static async Task Main()
         {
             var services = new ServiceCollection();
 
-            services.AddHttpRestClient("RequestBin", http => 
-            {
-                http.BaseAddress = new Uri("https://localtest.me:8080");
-            });
+            services.AddHttpRestClient("RequestBin", builder => builder
+                .ConfigureHttpClient(http =>
+                {
+                    http.BaseAddress = new Uri("https://your-pipe.x.pipedream.net");
+                    http.DefaultRequestHeaders.Add("X-Test", "This is a test");
+                })
+                .ConfigureHttpRestClient(options =>
+                {
+                    options.ContentMediaType = JsonContent.ApplicationJsonMediaType;
+                })
+                .ConfigureSerialization(json => 
+                {
+                    json.ContractResolver = new DefaultContractResolver 
+                    {
+                        NamingStrategy = new CamelCaseNamingStrategy()
+                    };
+
+                    json.Formatting = Formatting.Indented;
+                }));
             
             var serviceProvider = services.BuildServiceProvider();
 

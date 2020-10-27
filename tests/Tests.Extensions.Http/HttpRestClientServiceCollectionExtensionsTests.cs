@@ -181,5 +181,30 @@ namespace Tests.Extensions.Http
 
             Assert.That(client, Is.Not.Null);
         }
+
+        [Test, CustomAutoData]
+        public void AddHttpRestClient_uses_HttpClientBuilder_delegate(ServiceCollection services, string configurationName, Action<IHttpClientBuilder> builderConfiguration)
+        {
+            services.AddHttpRestClient(configurationName, builderConfiguration);
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            var client = serviceProvider.GetRequiredService<IHttpRestClient>();
+
+            Mock.Get(builderConfiguration).Verify(p => p(It.IsAny<IHttpClientBuilder>()));
+        }
+
+        [Test, CustomAutoData]
+        public void AddHttpRestClient_uses_HttpClientBuilder_delegate(ServiceCollection services, Action<IHttpClientBuilder> builderConfiguration)
+        {
+            services.AddHttpRestClient(builderConfiguration);
+
+            var serviceProvider = services.BuildServiceProvider();
+
+            var client = serviceProvider.GetRequiredService<IHttpRestClient>();
+
+            Mock.Get(builderConfiguration).Verify(p => p(It.IsAny<IHttpClientBuilder>()));
+        }
     }
+
 }
