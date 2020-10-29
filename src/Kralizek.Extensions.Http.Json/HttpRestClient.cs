@@ -52,6 +52,16 @@ namespace Kralizek.Extensions.Http
             return _httpFactory.CreateClient();
         }
 
+        private static async Task<string?> GetContentAsString(HttpContent content)
+        {
+            if (content is null)
+            {
+                return null;
+            }
+
+            return await content.ReadAsStringAsync().ConfigureAwait(false);
+        }
+
         #region Send
 #pragma warning disable CA2000 // Dispose objects before losing scope. Justification: False positive, see https://github.com/dotnet/roslyn-analyzers/issues/3042
 
@@ -77,7 +87,7 @@ namespace Kralizek.Extensions.Http
 
             if (response is { IsSuccessStatusCode: true })
             {
-                var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var incomingContent = await GetContentAsString(response.Content).ConfigureAwait(false);
 
                 var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _options.SerializerSettings);
 
@@ -85,7 +95,9 @@ namespace Kralizek.Extensions.Http
             }
             else
             {
-                throw new HttpException(response.StatusCode, response.ReasonPhrase);
+                var incomingContent = await GetContentAsString(response.Content).ConfigureAwait(false);
+
+                throw new HttpException(response.StatusCode, response.ReasonPhrase) { Payload = incomingContent };
             }
         }
 
@@ -108,7 +120,7 @@ namespace Kralizek.Extensions.Http
 
             if (response is { IsSuccessStatusCode: true })
             {
-                var incomingContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                var incomingContent = await GetContentAsString(response.Content).ConfigureAwait(false);
 
                 var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _options.SerializerSettings);
 
@@ -116,7 +128,9 @@ namespace Kralizek.Extensions.Http
             }
             else
             {
-                throw new HttpException(response.StatusCode, response.ReasonPhrase);
+                var incomingContent = await GetContentAsString(response.Content).ConfigureAwait(false);
+
+                throw new HttpException(response.StatusCode, response.ReasonPhrase) { Payload = incomingContent };
             }
         }
 
@@ -141,7 +155,9 @@ namespace Kralizek.Extensions.Http
 
             if (response is { IsSuccessStatusCode: false })
             {
-                throw new HttpException(response.StatusCode, response.ReasonPhrase);
+                var incomingContent = await GetContentAsString(response.Content).ConfigureAwait(false);
+
+                throw new HttpException(response.StatusCode, response.ReasonPhrase) { Payload = incomingContent };
             }
         }
 
@@ -160,7 +176,9 @@ namespace Kralizek.Extensions.Http
 
             if (response is { IsSuccessStatusCode: false })
             {
-                throw new HttpException(response.StatusCode, response.ReasonPhrase);
+                var incomingContent = await GetContentAsString(response.Content).ConfigureAwait(false);
+
+                throw new HttpException(response.StatusCode, response.ReasonPhrase) { Payload = incomingContent };
             }
         }
 

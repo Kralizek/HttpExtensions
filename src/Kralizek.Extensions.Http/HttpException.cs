@@ -90,5 +90,10 @@ namespace Kralizek.Extensions.Http
         /// The reason phrase returned from the server.
         /// </summary>
         public string? ReasonPhrase { get; set; }
+
+        /// <summary>
+        /// The payload attached to the faulty HTTP response.
+        /// </summary>
+        public string? Payload { get; set; }
     }
 }
