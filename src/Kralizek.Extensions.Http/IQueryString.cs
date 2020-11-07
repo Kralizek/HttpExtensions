@@ -58,14 +58,19 @@ namespace Kralizek.Extensions.Http
         /// </summary>
         /// <param name="queryString">The instance of <see cref="QueryString"/> to cast into a <see cref="string"/>.</param>
         /// <returns>The content of <paramref name="queryString" />. If <paramref name="queryString"/> is null, <see cref="string.Empty" /> will be returned.</returns>
-        public static implicit operator string(QueryString queryString) => queryString?.Query ?? string.Empty;
+        public static implicit operator string(QueryString queryString) => queryString is null ? string.Empty : GetQueryString(queryString);
 
         /// <summary>
         /// Returns the content of this instance of <see cref="QueryString"/> as a <see cref="string"/> wrapped by curly braces.
         /// </summary>
         public override string ToString()
         {
-            return $"{{{this}}}";
+            return $"{{{GetQueryString(this)}}}";
+        }
+
+        private static string GetQueryString(IQueryString queryString)
+        {
+            return queryString.Query ?? string.Empty;
         }
     }
 }
