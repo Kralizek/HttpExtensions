@@ -29,7 +29,6 @@ namespace Kralizek.Extensions.Http
         /// <param name="query">The querystring of the request.</param>
         /// <typeparam name="TResult">The type to deserialize the response into.</typeparam>
         /// <returns>If successful, it returns an instance of <typeparamref name="TResult"/>, otherwise it throws a <see cref="HttpException"/>.</returns>
-        /// <returns></returns>
         Task<TResult> SendAsync<TResult>(HttpMethod method, string path, IQueryString? query = null);
 
         /// <summary>
@@ -44,7 +43,7 @@ namespace Kralizek.Extensions.Http
         Task SendAsync<TContent>(HttpMethod method, string path, TContent content, IQueryString? query = null);
 
         /// <summary>
-        /// Sends an HTTP request.
+        /// Sends an HTTP request with no payload on both request and response.
         /// </summary>
         /// <param name="method">The HTTP method of the request.</param>
         /// <param name="path">The path to be requested.</param>
