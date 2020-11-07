@@ -2,7 +2,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Kralizek.Extensions.Http.Json
+namespace Kralizek.Extensions.Http
 {
     /// <summary>
     /// A set of extensions for <see cref="IHttpRestClient" />.
