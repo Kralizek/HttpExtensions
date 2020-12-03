@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net471</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net471;net5.0</TargetFrameworks>
     <PackageId>Kralizek.Extensions.Http.Json</PackageId>
     <AssemblyName>Kralizek.Extensions.Http.Json</AssemblyName>
     <Description>Classes and extension methods to make easier to work with JSON APIs via HttpClient</Description>
     <PackageTags>dotnet-standard;http-client;querystring;rest-client</PackageTags>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 

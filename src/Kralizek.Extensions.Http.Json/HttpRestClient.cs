@@ -62,6 +62,9 @@ namespace Kralizek.Extensions.Http
             return await content.ReadAsStringAsync().ConfigureAwait(false);
         }
 
+        /// <inheritdoc />
+        public HttpClient HttpClient => CreateClient();
+
         #region Send
 #pragma warning disable CA2000 // Dispose objects before losing scope. Justification: False positive, see https://github.com/dotnet/roslyn-analyzers/issues/3042
 
@@ -73,8 +76,46 @@ namespace Kralizek.Extensions.Http
         /// <inheritdoc/>
         public async Task<TResult> SendAsync<TContent, TResult>(HttpMethod method, string path, TContent content, IQueryString? query = null)
         {
-            var httpContent = JsonContent.FromObject(content, _options.Encoding, _options.ContentMediaType, _options.SerializerSettings);
+            var httpContent = content switch
+            {
+                HttpContent http => http,
+                _ => JsonContent.FromObject(content, _options.Encoding, _options.ContentMediaType, _options.SerializerSettings),
+            };
 
+            var requestUrl = ComposeUrl(path, query);
+
+            using var request = new HttpRequestMessage(method, requestUrl) { Content = httpContent };
+
+            await LogRequest(request, includeContent: true).ConfigureAwait(false);
+
+            using var response = await CreateClient().SendAsync(request).ConfigureAwait(false);
+
+            await LogResponse(response).ConfigureAwait(false);
+
+            if (response is { IsSuccessStatusCode: true })
+            {
+                var incomingContent = await GetContentAsString(response.Content).ConfigureAwait(false);
+
+                var result = JsonConvert.DeserializeObject<TResult>(incomingContent, _options.SerializerSettings);
+
+                return result;
+            }
+            else
+            {
+                var incomingContent = await GetContentAsString(response.Content).ConfigureAwait(false);
+
+                throw new HttpException(response.StatusCode, response.ReasonPhrase) { Payload = incomingContent };
+            }
+        }
+
+        /// <summary>
+        /// Sends an HTTP request with a generic <see cref="HttpContent" /> payload and receives a response with payload of type <typeparamref name="TResult"/>.
+        /// The request payload is sent as-is.
+        /// The response payload is assumed to be JSON.
+        /// </summary>
+        /// <inheritdoc />
+        public async Task<TResult> SendAsync<TResult>(HttpMethod method, string path, HttpContent httpContent, IQueryString? query = null)
+        {
             var requestUrl = ComposeUrl(path, query);
 
             using var request = new HttpRequestMessage(method, requestUrl) { Content = httpContent };
@@ -141,7 +182,11 @@ namespace Kralizek.Extensions.Http
         /// <inheritdoc/>
         public async Task SendAsync<TContent>(HttpMethod method, string path, TContent content, IQueryString? query = null)
         {
-            var httpContent = JsonContent.FromObject(content, _options.Encoding, _options.ContentMediaType, _options.SerializerSettings);
+            var httpContent = content switch
+            {
+                HttpContent http => http,
+                _ => JsonContent.FromObject(content, _options.Encoding, _options.ContentMediaType, _options.SerializerSettings),
+            };
 
             var requestUrl = ComposeUrl(path, query);
 
@@ -208,32 +253,54 @@ namespace Kralizek.Extensions.Http
                 {
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    _logger.LogError(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}' '{ERROR}'",
-                        response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
-                        response.RequestMessage.RequestUri.PathAndQuery,
-                        response.StatusCode.ToString("D"),
-                        response.ReasonPhrase,
-                        responseContent);
+                    if (response is { RequestMessage: { RequestUri: not null } } && responseContent is not null)
+                    {
+                        _logger.LogError(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}' '{ERROR}'",
+                            response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
+                            response.RequestMessage.RequestUri.PathAndQuery,
+                            response.StatusCode.ToString("D"),
+                            response.ReasonPhrase,
+                            responseContent);
+                    }
+                    else
+                    {
+                        _logger.LogError(eventId, "HTTP request not successful: {STATUS} '{REASON}'. No additional information was available.",
+                            response.StatusCode.ToString("D"),
+                            response.ReasonPhrase);
+                    }
                 }
 #pragma warning disable CA1031 // Do not catch general exception types
                 catch (Exception ex)
                 {
-                    _logger.LogError(eventId, ex, "{METHOD}: {PATHANDQUERY} {STATUS} {REASON} {ERRORMESSAGE}",
-                        response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
-                        response.RequestMessage.RequestUri.PathAndQuery,
-                        response.StatusCode.ToString("D"),
-                        response.ReasonPhrase,
-                        ex.Message);
+                    if (response is { RequestMessage: { RequestUri: not null } })
+                    {
+                        _logger.LogError(eventId, ex, "{METHOD}: {PATHANDQUERY} {STATUS} {REASON} {ERRORMESSAGE}",
+                            response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
+                            response.RequestMessage.RequestUri.PathAndQuery,
+                            response.StatusCode.ToString("D"),
+                            response.ReasonPhrase,
+                            ex.Message);
+                    }
+                    else
+                    {
+                        _logger.LogError(eventId, ex, "Faulty HTTP request with partial information: {STATUS} {REASON} {ERRORMESSAGE}",
+                            response.StatusCode.ToString("D"),
+                            response.ReasonPhrase,
+                            ex.Message);
+                    }
                 }
 #pragma warning restore CA1031
             }
             else
             {
-                _logger.LogDebug(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}'",
-                    response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
-                    response.RequestMessage.RequestUri.PathAndQuery,
-                    response.StatusCode.ToString("D"),
-                    response.ReasonPhrase);
+                if (response is { RequestMessage: { RequestUri: not null } })
+                {
+                    _logger.LogDebug(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}'",
+                        response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
+                        response.RequestMessage.RequestUri.PathAndQuery,
+                        response.StatusCode.ToString("D"),
+                        response.ReasonPhrase);
+                }
             }
         }
 
