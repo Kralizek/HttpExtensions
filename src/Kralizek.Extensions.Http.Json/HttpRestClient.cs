@@ -253,32 +253,54 @@ namespace Kralizek.Extensions.Http
                 {
                     var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    _logger.LogError(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}' '{ERROR}'",
-                        response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
-                        response.RequestMessage.RequestUri.PathAndQuery,
-                        response.StatusCode.ToString("D"),
-                        response.ReasonPhrase,
-                        responseContent);
+                    if (response is { RequestMessage: { RequestUri: not null } } && responseContent is not null)
+                    {
+                        _logger.LogError(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}' '{ERROR}'",
+                            response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
+                            response.RequestMessage.RequestUri.PathAndQuery,
+                            response.StatusCode.ToString("D"),
+                            response.ReasonPhrase,
+                            responseContent);
+                    }
+                    else
+                    {
+                        _logger.LogError(eventId, "HTTP request not successful: {STATUS} '{REASON}'. No additional information was available.",
+                            response.StatusCode.ToString("D"),
+                            response.ReasonPhrase);
+                    }
                 }
 #pragma warning disable CA1031 // Do not catch general exception types
                 catch (Exception ex)
                 {
-                    _logger.LogError(eventId, ex, "{METHOD}: {PATHANDQUERY} {STATUS} {REASON} {ERRORMESSAGE}",
-                        response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
-                        response.RequestMessage.RequestUri.PathAndQuery,
-                        response.StatusCode.ToString("D"),
-                        response.ReasonPhrase,
-                        ex.Message);
+                    if (response is { RequestMessage: { RequestUri: not null } })
+                    {
+                        _logger.LogError(eventId, ex, "{METHOD}: {PATHANDQUERY} {STATUS} {REASON} {ERRORMESSAGE}",
+                            response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
+                            response.RequestMessage.RequestUri.PathAndQuery,
+                            response.StatusCode.ToString("D"),
+                            response.ReasonPhrase,
+                            ex.Message);
+                    }
+                    else
+                    {
+                        _logger.LogError(eventId, ex, "Faulty HTTP request with partial information: {STATUS} {REASON} {ERRORMESSAGE}",
+                            response.StatusCode.ToString("D"),
+                            response.ReasonPhrase,
+                            ex.Message);
+                    }
                 }
 #pragma warning restore CA1031
             }
             else
             {
-                _logger.LogDebug(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}'",
-                    response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
-                    response.RequestMessage.RequestUri.PathAndQuery,
-                    response.StatusCode.ToString("D"),
-                    response.ReasonPhrase);
+                if (response is { RequestMessage: { RequestUri: not null } })
+                {
+                    _logger.LogDebug(eventId, "{METHOD}: {PATHANDQUERY} {STATUS} '{REASON}'",
+                        response.RequestMessage.Method.Method.ToUpper(CultureInfo.InvariantCulture),
+                        response.RequestMessage.RequestUri.PathAndQuery,
+                        response.StatusCode.ToString("D"),
+                        response.ReasonPhrase);
+                }
             }
         }
 
