@@ -6,7 +6,7 @@
     <AssemblyName>Kralizek.Extensions.Http.Json</AssemblyName>
     <Description>Classes and extension methods to make easier to work with JSON APIs via HttpClient</Description>
     <PackageTags>dotnet-standard;http-client;querystring;rest-client</PackageTags>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
