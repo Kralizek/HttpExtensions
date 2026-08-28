@@ -1,3 +1,6 @@
+> [!WARNING]
+> This project is no longer maintained. Existing NuGet packages remain available for existing consumers, but no new releases are planned. For typed REST clients, prefer Refit; for direct HTTP usage, prefer modern `HttpClient`, `IHttpClientFactory`, and `System.Net.Http.Json`. This repository is being archived and kept read-only.
+
 # Kralizek's HTTP Extensions
 
 ## Overview
